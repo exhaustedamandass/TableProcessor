@@ -2,8 +2,7 @@ name := "Table Processor"
 
 version := "1.0.0"
 
-scalaVersion := "2.13.3"
+scalaVersion := "3.4.2"
 
-libraryDependencies += "org.scalatest" % "scalatest_2.13" % "3.0.8" % "test"
-libraryDependencies += "org.mockito" % "mockito-scala_2.13" % "1.6.2" % "test"
-libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.14.1"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19"
+libraryDependencies += "org.scalatestplus" %% "mockito-5-12" % "3.2.19.0"
