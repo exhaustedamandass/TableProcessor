@@ -196,3 +196,7 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/scala,intellij,sbt,macos,windows,linux
 
 .bsp/
+
+# Sample csv files
+
+*.csv

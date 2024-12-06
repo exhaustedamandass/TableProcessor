@@ -1,50 +1,70 @@
 package parsing.objects
 
-import parsing.{BinaryOperationNode, CellReferenceNode, NumberNode}
-import parsing.traits.AstNode
+import parsing.traits.{AST, BinaryOp, Number, Reference}
+
+import scala.collection.mutable
 
 object FormulaParser {
-  def parse(formula: String): AstNode = {
+  def parse(formula: String): AST = {
     val tokens = tokenize(formula)
-    parseExpression(tokens)
+    buildAST(tokens)
   }
 
   private def tokenize(formula: String): List[String] = {
-    val pattern = """([A-Z]+\d+|\d+(\.\d+)?|[+\-*/()])""".r
+    val pattern = "([A-Z]+\\d+|\\d+(\\.\\d+)?|[+\\-*/()])".r
     pattern.findAllIn(formula).toList
   }
 
-  private def parseExpression(tokens: List[String]): AstNode = {
-    val (node, remaining) = parseTerm(tokens)
-    if (remaining.nonEmpty && Operators.fromSymbol(remaining.head).isDefined) {
-      val operator = Operators.fromSymbol(remaining.head).get
-      val right = parseExpression(remaining.tail)
-      BinaryOperationNode(operator, node, right)
-    } else {
-      node
+  private def buildAST(tokens: List[String]): AST = {
+    val output = mutable.Stack[AST]()
+    val operators = mutable.Stack[String]()
+
+    def precedence(op: String): Int = Operators.ops(op).precedence
+
+    var idx = 0
+    while (idx < tokens.length) {
+      val token = tokens(idx)
+      token match {
+        case token if token.matches("\\d+(\\.\\d+)?") =>
+          output.push(Number(token.toDouble))
+        case token if token.matches("[A-Z]+\\d+") =>
+          val col = token.filter(_.isLetter)
+          val row = token.filter(_.isDigit).toInt
+          output.push(Reference(col, row))
+        case token if Operators.ops.contains(token) =>
+          while (operators.nonEmpty && precedence(operators.top) >= precedence(token)) {
+            val op = operators.pop()
+            val right = output.pop()
+            val left = output.pop()
+            output.push(BinaryOp(op, left, right))
+          }
+          operators.push(token)
+        case "(" =>
+          operators.push(token)
+        case ")" =>
+          while (operators.nonEmpty && operators.top != "(") {
+            val op = operators.pop()
+            val right = output.pop()
+            val left = output.pop()
+            output.push(BinaryOp(op, left, right))
+          }
+          if (operators.isEmpty || operators.pop() != "(") {
+            throw new RuntimeException("Mismatched parentheses")
+          }
+        case _ =>
+          throw new RuntimeException(s"Unexpected token: $token")
+      }
+      idx += 1
     }
+
+    while (operators.nonEmpty) {
+      val op = operators.pop()
+      val right = output.pop()
+      val left = output.pop()
+      output.push(BinaryOp(op, left, right))
+    }
+
+    output.pop()
   }
 
-  private def parseTerm(tokens: List[String]): (AstNode, List[String]) = tokens match {
-    case head :: tail if head.matches("""\d+(\.\d+)?""") =>
-      (NumberNode(head.toDouble), tail)
-
-    case head :: tail if head.matches("""[A-Z]+\d+""") =>
-      val (column, row) = parseCellReference(head)
-      (CellReferenceNode(column, row), tail)
-
-    case "(" :: rest =>
-      val (node, remaining) = parseExpression(rest)
-      if (remaining.isEmpty || remaining.head != ")")
-        throw new IllegalArgumentException("Unmatched parenthesis")
-      (node, remaining.tail)
-
-    case _ =>
-      throw new IllegalArgumentException(s"Unexpected token: ${tokens.headOption.getOrElse("EOF")}")
-  }
-  private def parseCellReference(reference: String): (String, Int) = {
-    val column = reference.takeWhile(_.isLetter)
-    val row = reference.dropWhile(_.isLetter).toInt
-    (column, row)
-  }
 }

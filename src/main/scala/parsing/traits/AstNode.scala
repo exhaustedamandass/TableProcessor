@@ -1,3 +1,6 @@
 package parsing.traits
 
-trait AstNode
+sealed trait AST
+case class Number(value: Double) extends AST
+case class Reference(col: String, row: Int) extends AST
+case class BinaryOp(operator: String, left: AST, right: AST) extends AST

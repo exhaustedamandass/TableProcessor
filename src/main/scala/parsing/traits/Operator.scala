@@ -1,6 +1,6 @@
 package parsing.traits
 
 trait Operator {
-  def symbol: String
-  def apply(left: Double, right: Double): Double
+  def apply(lhs: Double, rhs: Double): Double
+  def precedence: Int
 }
