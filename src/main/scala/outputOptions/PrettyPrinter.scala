@@ -1,0 +1,5 @@
+package outputOptions
+
+trait PrettyPrinter {
+
+}
