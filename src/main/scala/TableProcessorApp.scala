@@ -1,6 +1,7 @@
 import Headers.DefaultHeaderHandler
 import filters.{ColumnFilter, Filter, FilterHandler, IsEmptyFilter, IsNonEmptyFilter}
 import loaders.CsvLoader
+import outputOptions.PrettyPrinterFactory
 import parsing.objects.Table
 import ranges.DefaultRangeSelector
 
@@ -19,6 +20,8 @@ object TableProcessorApp {
           |  --filter-is-empty [COLUMN]       filter out lines with non-empty cells on column
           |  --range [FROM] [TO]              specify a range of the table to output
           |  --headers                        include headers in the output
+          |  --output-format (csv|md)         the format of the output (optional, defaults to "csv")
+          |  --output-separator [STRING]      for CSV output: the separator in the output file (optional, defaults to ",")
         """.stripMargin)
       sys.exit(1)
     }
@@ -27,6 +30,8 @@ object TableProcessorApp {
     val filters = mutable.ListBuffer[Filter]()
     var range: Option[(String, String)] = None
     var includeHeaders = false
+    var outputFormat = "csv"
+    var outputSeparator = ","
 
     try {
       var i = 0
@@ -63,6 +68,14 @@ object TableProcessorApp {
             includeHeaders = true
             i += 1
 
+          case "--output-format" =>
+            outputFormat = args(i + 1)
+            i += 2
+
+          case "--output-separator" =>
+            outputSeparator = args(i + 1)
+            i += 2
+
           case other =>
             throw new IllegalArgumentException(s"Unknown argument: $other")
         }
@@ -77,23 +90,7 @@ object TableProcessorApp {
       val loader = new CsvLoader()
       val rawData = loader.load(filePath, separator)
 
-      val table = new Table(rawData.length, rawData.head.length)
-      for ((row, rowIndex) <- rawData.zipWithIndex) {
-        for ((cell, colIndex) <- row.zipWithIndex) {
-          val colName = ('A' + colIndex).toChar.toString
-          table.setCell(colName, rowIndex + 1, cell)
-        }
-      }
-
       val rangeSelector = new DefaultRangeSelector()
-      val headerHandler = new DefaultHeaderHandler()
-
-      val (startRow, endRow, startCol, endCol) = range match {
-        case Some((from, to)) =>
-          rangeSelector.calculateRange(from, to, rawData.length, rawData.head.length)
-        case None =>
-          (0, rawData.length - 1, 0, rawData.head.length - 1)
-      }
 
       val filteredData = rawData.zipWithIndex.filter { case (row, idx) =>
         val rowMap = row.zipWithIndex.map { case (cell, colIdx) =>
@@ -105,30 +102,42 @@ object TableProcessorApp {
 
       val filteredRowsWithIndices = filteredData.map { case (row, originalIndex) => (originalIndex + 1, row) }
 
+      val (startRow, endRow, startCol, endCol) = range match {
+        case Some((from, to)) =>
+          rangeSelector.calculateRange(from, to, rawData.length, rawData.head.length)
+        case None =>
+          (0, rawData.length - 1, 0, rawData.head.length - 1)
+      }
+
       val rangedRows = filteredRowsWithIndices.filter { case (originalIndex, _) =>
         originalIndex >= startRow + 1 && originalIndex <= endRow + 1
       }
 
-      val result = rangedRows.map { case (_, row) =>
-        row.slice(startCol, endCol + 1)
+      val result = rangedRows.map { case (index, row) =>
+        (index, row.slice(startCol, endCol + 1))
       }
 
-      // Print headers or an empty header row
-      if (includeHeaders) {
-        println(headerHandler.generateHeaders(startCol, endCol))
-      } else {
-        val emptyHeader = (startCol to endCol).map(_ => " ").mkString(", ")
-        println(emptyHeader)
+      val headers = if (includeHeaders) Some((startCol to endCol).map(i => ('A' + i).toChar.toString)) else None
+
+      val prettyPrinter = PrettyPrinterFactory.getPrinter(outputFormat)
+
+      // Prepare rows based on whether headers are included
+      val rowsForOutput = result.map {
+        case (rowIndex, row) if includeHeaders => (rowIndex, row) // Include row indices when headers are specified
+        case (_, row) => (-1, row) // Use only the row data (exclude indices)
       }
 
-      // Print rows
-      rangedRows.foreach { case (originalIndex, row) =>
-        if (includeHeaders) {
-          println(headerHandler.formatRow(originalIndex, row.slice(startCol, endCol + 1)))
-        } else {
-          println(row.slice(startCol, endCol + 1).mkString(", "))
-        }
-      }
+      // Skip placeholder indices in the `PrettyPrinter`
+      val output = prettyPrinter.printTable(
+        rowsForOutput.filter {
+          case (-1, _) if !includeHeaders => true // Allow rows without indices when headers are not specified
+          case (rowIndex, _) => rowIndex != -1
+        },
+        headers,
+        outputSeparator
+      )
+
+      println(output)
 
     } catch {
       case e: IllegalArgumentException =>
@@ -140,6 +149,7 @@ object TableProcessorApp {
     }
   }
 }
+
 
 
 
