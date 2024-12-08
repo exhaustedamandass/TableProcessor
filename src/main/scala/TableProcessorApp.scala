@@ -2,7 +2,7 @@ import cliHandlers.{FilterHandler, HeadersHandler, HelpHandler, InputFileHandler
 import prettyPrinting.PrettyPrinterFactory
 import evaluation.Table
 import loaders.CsvLoader
-import outputOptions.OutputHandlerFactory
+import output.OutputHandlerFactory
 import ranges.DefaultRangeSelector
 
 object TableProcessorApp {

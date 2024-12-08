@@ -1,4 +1,4 @@
-package outputOptions
+package output
 
 object OutputHandlerFactory {
   def getOutputHandler(argsMap: Map[String, String]): OutputHandler = {

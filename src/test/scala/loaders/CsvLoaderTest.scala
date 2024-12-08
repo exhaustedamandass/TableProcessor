@@ -1,0 +1,5 @@
+package loaders
+
+class CsvLoaderTest {
+
+}

@@ -1,4 +1,4 @@
-package outputOptions
+package output
 
 class FileOutputHandler(filePath: String) extends OutputHandler {
   override def write(content: String): Unit = {
