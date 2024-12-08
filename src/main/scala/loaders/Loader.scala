@@ -1,4 +1,4 @@
-package traits
+package loaders
 
 trait Loader {
   /**

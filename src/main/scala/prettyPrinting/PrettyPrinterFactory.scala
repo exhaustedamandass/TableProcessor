@@ -1,4 +1,4 @@
-package outputOptions
+package prettyPrinting
 
 object PrettyPrinterFactory {
   def getPrinter(format: String): PrettyPrinter = format.toLowerCase match {

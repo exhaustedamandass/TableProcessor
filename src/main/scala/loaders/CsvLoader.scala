@@ -1,7 +1,5 @@
 package loaders
 
-import traits.Loader
-
 import scala.io.Source
 import scala.util.Using
 

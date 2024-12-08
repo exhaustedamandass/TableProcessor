@@ -1,4 +1,4 @@
-package outputOptions
+package prettyPrinting
 
 class CSVPrettyPrinter extends PrettyPrinter {
   override def printTable(rows: Seq[(Int, Seq[String])], headers: Option[Seq[String]], separator: String = ","): String = {

@@ -1,6 +1,4 @@
-package parsing.objects
-
-import parsing.traits.Operator
+package parsing
 
 object Operators {
   val ops: Map[String, Operator] = Map(

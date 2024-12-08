@@ -1,6 +1,6 @@
-package parsing.objects
+package evaluation
 
-import parsing.FormulaEvaluator
+import parsing.FormulaParser
 
 import scala.collection.mutable
 
@@ -25,8 +25,5 @@ class Table(rows: Int, cols: Int) {
     }
   }
 }
-
-// A helper class to store a cell's content
-case class Cell(value: String)
 
 

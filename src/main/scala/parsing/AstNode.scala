@@ -1,6 +1,6 @@
-package parsing.traits
+package parsing
 
-sealed trait AST
+trait AST
 case class Number(value: Double) extends AST
 case class Reference(col: String, row: Int) extends AST
 case class BinaryOp(operator: String, left: AST, right: AST) extends AST

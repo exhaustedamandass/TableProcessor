@@ -1,4 +1,5 @@
-package outputOptions
+package prettyPrinting
+
 class MarkdownPrettyPrinter extends PrettyPrinter {
   override def printTable(rows: Seq[(Int, Seq[String])], headers: Option[Seq[String]], ignoredSeparator: String): String = {
     val hasHeaders = headers.isDefined

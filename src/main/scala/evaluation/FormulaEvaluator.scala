@@ -1,7 +1,6 @@
-package parsing
+package evaluation
 
-import parsing.objects.{FormulaParser, Operators, Table}
-import parsing.traits.{AST, BinaryOp, Number, Reference}
+import parsing._
 
 object FormulaEvaluator {
   def evaluate(ast: AST, table: Table, visited: Set[String] = Set()): Either[String, Double] = ast match {

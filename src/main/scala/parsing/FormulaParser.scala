@@ -1,6 +1,4 @@
-package parsing.objects
-
-import parsing.traits.{AST, BinaryOp, Number, Reference}
+package parsing
 
 import scala.collection.mutable
 
@@ -66,5 +64,4 @@ object FormulaParser {
 
     output.pop()
   }
-
 }
