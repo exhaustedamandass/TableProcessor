@@ -1,8 +1,11 @@
 package parsing
 
+import operator.OperatorRegistry
+
 import scala.collection.mutable
 
-object FormulaParser {
+class FormulaParser(operatorRegistry: OperatorRegistry[Double, Double]) {
+
   def parse(formula: String): AST = {
     val tokens = tokenize(formula)
     buildAST(tokens)
@@ -17,42 +20,45 @@ object FormulaParser {
     val output = mutable.Stack[AST]()
     val operators = mutable.Stack[String]()
 
-    def precedence(op: String): Int = Operators.ops(op).precedence
+    def precedence(op: String): Int = operatorRegistry.precedence(op)
 
-    var idx = 0
-    while (idx < tokens.length) {
-      val token = tokens(idx)
-      token match {
-        case token if token.matches("\\d+(\\.\\d+)?") =>
-          output.push(Number(token.toDouble))
-        case token if token.matches("[A-Z]+\\d+") =>
-          val col = token.filter(_.isLetter)
-          val row = token.filter(_.isDigit).toInt
-          output.push(Reference(col, row))
-        case token if Operators.ops.contains(token) =>
-          while (operators.nonEmpty && precedence(operators.top) >= precedence(token)) {
-            val op = operators.pop()
-            val right = output.pop()
-            val left = output.pop()
-            output.push(BinaryOp(op, left, right))
-          }
-          operators.push(token)
-        case "(" =>
-          operators.push(token)
-        case ")" =>
-          while (operators.nonEmpty && operators.top != "(") {
-            val op = operators.pop()
-            val right = output.pop()
-            val left = output.pop()
-            output.push(BinaryOp(op, left, right))
-          }
-          if (operators.isEmpty || operators.pop() != "(") {
-            throw new RuntimeException("Mismatched parentheses")
-          }
-        case _ =>
-          throw new RuntimeException(s"Unexpected token: $token")
+    def processOperator(token: String): Unit = {
+      while (operators.nonEmpty && operators.top != "(" && precedence(operators.top) >= precedence(token)) {
+        val op = operators.pop()
+        val right = output.pop()
+        val left = output.pop()
+        output.push(BinaryOp(op, left, right))
       }
-      idx += 1
+      operators.push(token)
+    }
+
+    def processClosingParenthesis(): Unit = {
+      while (operators.nonEmpty && operators.top != "(") {
+        val op = operators.pop()
+        val right = output.pop()
+        val left = output.pop()
+        output.push(BinaryOp(op, left, right))
+      }
+      if (operators.isEmpty || operators.pop() != "(") {
+        throw new RuntimeException("Mismatched parentheses")
+      }
+    }
+
+    tokens.foreach {
+      case t if t.matches("\\d+(\\.\\d+)?") =>
+        output.push(Number(t.toDouble))
+      case t if t.matches("[A-Z]+\\d+") =>
+        val col = t.filter(_.isLetter)
+        val row = t.filter(_.isDigit).toInt
+        output.push(Reference(col, row))
+      case t if operatorRegistry.get(t).isDefined =>
+        processOperator(t)
+      case "(" =>
+        operators.push("(")
+      case ")" =>
+        processClosingParenthesis()
+      case unexpected =>
+        throw new RuntimeException(s"Unexpected token: $unexpected")
     }
 
     while (operators.nonEmpty) {

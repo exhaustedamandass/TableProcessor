@@ -7,7 +7,6 @@ import ranges.DefaultRangeSelector
 
 object TableProcessorApp {
   def main(args: Array[String]): Unit = {
-    // Assume we have our ParameterChain and handlers as implemented previously
     val handlers: List[ParameterHandler] = List(
       new HelpHandler(),
       new InputFileHandler(),
@@ -31,6 +30,8 @@ object TableProcessorApp {
       println(chain.help)
       return
     }
+
+    //hide this into a separate class or smth
 
     val filePath = config.inputFile.get
     val separator = config.inputSeparator

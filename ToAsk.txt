@@ -10,3 +10,10 @@ how headers work
 
 
 and also about thisNote: Be careful, even when headers are not printed, the Markdown table format expects a header row. So you have two options: create an empty row instead of headers, or print the first line as if it were a header.
+
+
+use exceptions, not some error
+
+if file doesn't exist, handle the error
+if cyclic dependency, then error cell,
+separate into packages further

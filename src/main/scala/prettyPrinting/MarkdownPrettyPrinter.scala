@@ -5,80 +5,51 @@ class MarkdownPrettyPrinter extends PrettyPrinter {
     val hasHeaders = headers.isDefined
 
     // If headers are present, prepend a column for row indices to the data rows
-    val allDataRows = if (hasHeaders) {
-      rows.map { case (idx, cols) => idx.toString +: cols }
-    } else {
-      rows.map { case (_, cols) => cols }
+    val allDataRows = rows.map { case (idx, cols) =>
+      if (hasHeaders) idx.toString +: cols else cols
     }
 
     // Construct a combined set of rows that includes headers if present
     val allRows = if (hasHeaders) {
-      // Headers: prepend an empty cell for the row index column
       val hdr = "" +: headers.get
       hdr +: allDataRows
     } else {
-      // No headers: create a fake header row of spaces (equal to the number of columns)
       val colCount = allDataRows.headOption.map(_.length).getOrElse(0)
       Seq(Seq.fill(colCount)(" ")) ++ allDataRows
     }
 
     val colCount = allRows.headOption.map(_.length).getOrElse(0)
-    // Determine maxLen for each column (max content length)
+
+    // Determine the maximum content length for each column
     val maxLens = (0 until colCount).map { colIndex =>
       allRows.map(row => row(colIndex).length).maxOption.getOrElse(0)
     }
 
-    // Each column width = maxLen + 2 (one space on each side)
+    // Each column width includes padding (one space on each side)
     val colWidths = maxLens.map(_ + 2)
 
-    def formatCell(content: String, width: Int): String = {
-      // width includes the 2 spaces
-      // One leading space + content + trailing spaces until total length = width
-      val contentLen = content.length
-      val used = 1 + contentLen // 1 for leading space + content length
-      val needed = width - used // trailing spaces needed (at least 1)
-      " " + content + (" " * needed)
-    }
+    def formatCell(content: String, width: Int): String =
+      " " + content.padTo(width - 1, ' ') // Adds leading and trailing spaces
 
-    // Build header row, divider row, and data rows
-    // First row in allRows is either headers or a fake empty header
-    val (headerRow, dividerRow, dataRows) =
-    if (hasHeaders) {
-      // With headers: first row is actual headers (including the empty cell for row index column)
-      val hdrRow = allRows.head
-      val dataOnly = allRows.tail
+    def formatRow(row: Seq[String], widths: Seq[Int]): String =
+      "|" + row.zip(widths).map { case (cell, width) => formatCell(cell, width) }.mkString("|") + "|"
 
-      val hdrCells = hdrRow.zip(colWidths).map { case (h, w) => formatCell(h, w) }
-      val hdrLine = "|" + hdrCells.mkString("|") + "|"
+    def createDivider(widths: Seq[Int]): String =
+      "|" + widths.map("-" * _).mkString("|") + "|"
 
-      // Divider: for each column width w, print w dashes
-      val divCells = colWidths.map(w => "-" * (w))
-      val divLine = "|" + divCells.mkString("|") + "|"
-
-      val dataLines = dataOnly.map { row =>
-        val cells = row.zip(colWidths).map { case (c, w) => formatCell(c, w) }
-        "|" + cells.mkString("|") + "|"
+    // Generate header row, divider row, and data rows
+    val (headerRow, dividerRow) =
+      if (hasHeaders) {
+        val hdrRow = formatRow(allRows.head, colWidths)
+        val divRow = createDivider(colWidths)
+        (hdrRow, divRow)
+      } else {
+        val fakeHdrRow = formatRow(allRows.head, colWidths)
+        val divRow = createDivider(colWidths)
+        (fakeHdrRow, divRow)
       }
 
-      (hdrLine, divLine, dataLines)
-    } else {
-      // No headers: first row is the fake header row of spaces
-      val fakeHdrRow = allRows.head
-      val dataOnly = allRows.tail
-
-      val hdrCells = fakeHdrRow.zip(colWidths).map { case (h, w) => formatCell(h, w) }
-      val hdrLine = "|" + hdrCells.mkString("|") + "|"
-
-      val divCells = colWidths.map(w => "-" * w)
-      val divLine = "|" + divCells.mkString("|") + "|"
-
-      val dataLines = dataOnly.map { row =>
-        val cells = row.zip(colWidths).map { case (c, w) => formatCell(c, w) }
-        "|" + cells.mkString("|") + "|"
-      }
-
-      (hdrLine, divLine, dataLines)
-    }
+    val dataRows = allRows.tail.map(row => formatRow(row, colWidths))
 
     (Seq(headerRow, dividerRow) ++ dataRows).mkString("\n")
   }

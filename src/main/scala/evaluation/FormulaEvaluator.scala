@@ -1,10 +1,18 @@
 package evaluation
 
+import operator.OperatorRegistry
 import parsing._
+import parsing.operatorRegistry.DefaultArithmeticOperatorRegistry
 
 object FormulaEvaluator {
-  def evaluate(ast: AST, table: Table, visited: Set[String] = Set()): Either[String, Double] = ast match {
-    case Number(value) => Right(value)
+  def evaluate(
+                ast: AST,
+                table: Table,
+                visited: Set[String] = Set(),
+                operatorRegistry: OperatorRegistry[Double, Double] = DefaultArithmeticOperatorRegistry
+              ): Either[String, Double] = ast match {
+    case Number(value) =>
+      Right(value)
 
     case Reference(col, row) =>
       val cellKey = s"$col$row"
@@ -19,22 +27,26 @@ object FormulaEvaluator {
       if (cellValue.isEmpty) {
         Left(s"Referenced empty cell at $col$row")
       } else if (cellValue.startsWith("=")) {
-        evaluate(FormulaParser.parse(cellValue.tail), table, visited + cellKey)
+        // Recursively evaluate the formula in the referenced cell
+        // Parsing again using the same operator registry as the parser
+        val referencedAST = new FormulaParser(operatorRegistry).parse(cellValue.tail)
+        evaluate(referencedAST, table, visited + cellKey, operatorRegistry)
       } else {
         try {
           Right(cellValue.toDouble)
         } catch {
-          case _: NumberFormatException => Left(s"Invalid value at $col$row: $cellValue")
+          case _: NumberFormatException => Left(s"Invalid numeric value at $col$row: $cellValue")
         }
       }
 
     case BinaryOp(operator, left, right) =>
-      (evaluate(left, table, visited), evaluate(right, table, visited)) match {
+      (evaluate(left, table, visited, operatorRegistry), evaluate(right, table, visited, operatorRegistry)) match {
         case (Right(lhs), Right(rhs)) =>
           try {
-            Right(Operators.ops(operator)(lhs, rhs))
+            Right(operatorRegistry.evaluate(operator, lhs, rhs))
           } catch {
-            case _: ArithmeticException => Left(s"Arithmetic error with operator $operator")
+            case _: ArithmeticException =>
+              Left(s"Arithmetic error with operator $operator on values ($lhs, $rhs)")
           }
         case (Left(error), _) => Left(error)
         case (_, Left(error)) => Left(error)

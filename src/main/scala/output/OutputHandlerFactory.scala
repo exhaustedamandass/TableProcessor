@@ -12,3 +12,4 @@ object OutputHandlerFactory {
     }
   }
 }
+//TODO: should be in the arguments
