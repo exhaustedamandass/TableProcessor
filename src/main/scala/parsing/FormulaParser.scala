@@ -12,7 +12,7 @@ class FormulaParser(operatorRegistry: OperatorRegistry[Double, Double]) {
   }
 
   private def tokenize(formula: String): List[String] = {
-    val pattern = "([A-Z]+\\d+|\\d+(\\.\\d+)?|[+\\-*/()])".r
+    val pattern = "([A-Z]+\\d+|\\d+(\\.\\d+)?|[+\\-*/()^&])".r
     pattern.findAllIn(formula).toList
   }
 

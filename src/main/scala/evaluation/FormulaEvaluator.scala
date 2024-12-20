@@ -28,9 +28,15 @@ object FormulaEvaluator {
         Left(s"Referenced empty cell at $col$row")
       } else if (cellValue.startsWith("=")) {
         // Recursively evaluate the formula in the referenced cell
-        // Parsing again using the same operator registry as the parser
-        val referencedAST = new FormulaParser(operatorRegistry).parse(cellValue.tail)
-        evaluate(referencedAST, table, visited + cellKey, operatorRegistry)
+        val formula = cellValue.tail
+        val parser = new FormulaParser(operatorRegistry)
+        try {
+          val referencedAST = parser.parse(formula)
+          evaluate(referencedAST, table, visited + cellKey, operatorRegistry)
+        } catch {
+          case e: RuntimeException =>
+            Left(s"Parsing error in referenced cell $col$row: ${e.getMessage}")
+        }
       } else {
         try {
           Right(cellValue.toDouble)

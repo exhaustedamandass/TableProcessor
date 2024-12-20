@@ -1,29 +1,45 @@
 package ranges
 
 class DefaultRangeSelector extends RangeSelector {
-  //TODO: give name to the return value
-  //TODO: make some class for 4 ints
-  //TODO: column name can be double char and more like "AA" or "AZ"
-  override def calculateRange(from: String, to: String, maxRows: Int, maxCols: Int): (Int, Int, Int, Int) = {
-    val fromCol = from.head - 'A'
-    val fromRow = from.tail.toInt - 1
-    val toCol = to.head - 'A'
-    val toRow = to.tail.toInt - 1
 
-    def calculateBounds(minValue: Int, maxValue: Int, limit: Int): (Int, Int) = {
-      val start = math.min(minValue, maxValue).clamp(0, limit - 1)
-      val end = math.max(minValue, maxValue).clamp(0, limit - 1)
-      (start, end)
-    }
+  override def calculateRange(from: String, to: String, maxRows: Int, maxCols: Int): GridRange = {
+    // Extract column and row parts
+    val (fromColName, fromRowNum) = splitColumnRow(from)
+    val (toColName, toRowNum) = splitColumnRow(to)
 
+    val fromCol = columnNameToIndex(fromColName)
+    val fromRow = fromRowNum - 1 // zero-based index
+    val toCol = columnNameToIndex(toColName)
+    val toRow = toRowNum - 1     // zero-based index
+
+    // Determine start and end indices for rows and columns, clamped within limits
     val (startRow, endRow) = calculateBounds(fromRow, toRow, maxRows)
     val (startCol, endCol) = calculateBounds(fromCol, toCol, maxCols)
 
-    (startRow, endRow, startCol, endCol)
+    // Return a named case class instead of a tuple
+    GridRange(startRow, endRow, startCol, endCol)
   }
 
-  implicit class IntOps(value: Int) {
-    def clamp(min: Int, max: Int): Int = math.max(min, math.min(max, value))
+  private def splitColumnRow(cellRef: String): (String, Int) = {
+    val colPart = cellRef.takeWhile(_.isLetter)
+    val rowPart = cellRef.dropWhile(_.isLetter)
+    (colPart, rowPart.toInt)
+  }
+
+  private def columnNameToIndex(colName: String): Int = {
+    // Convert a base-26 column name (A-Z, AA, AB, etc.) to a zero-based index
+    colName.foldLeft(0) { (acc, char) =>
+      acc * 26 + (char - 'A' + 1)
+    } - 1 // make zero-based
+  }
+
+  private def calculateBounds(minValue: Int, maxValue: Int, limit: Int): (Int, Int) = {
+    val start = clamp(math.min(minValue, maxValue), 0, limit - 1)
+    val end = clamp(math.max(minValue, maxValue), 0, limit - 1)
+    (start, end)
+  }
+
+  private def clamp(value: Int, min: Int, max: Int): Int = {
+    math.max(min, math.min(max, value))
   }
 }
-
